@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Leaf, BarChart3, Map as MapIcon, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BarChart3, Map as MapIcon, ShieldCheck } from 'lucide-react';
 
 export default function Home() {
   return (
