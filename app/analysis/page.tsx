@@ -3,8 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import { Columns, ArrowLeftRight, TrendingUp, Info } from 'lucide-react';
+import { Columns, ArrowLeftRight, Info } from 'lucide-react';
 import NDVIChart from '@/components/NDVIChart';
+
+function InsightCard({ title, value, desc }: { title: string, value: string, desc: string }) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-slate-400 text-xs font-bold uppercase tracking-widest">{title}</h4>
+      <p className="text-xl font-bold text-green-400">{value}</p>
+      <p className="text-sm text-slate-300 leading-relaxed">{desc}</p>
+    </div>
+  );
+}
 
 export default function AnalysisPage() {
   const [selectedPolygon, setSelectedPolygon] = useState<any>(null);
@@ -15,9 +25,13 @@ export default function AnalysisPage() {
   useEffect(() => {
     const saved = localStorage.getItem('selectedField');
     if (saved) {
-      const poly = JSON.parse(saved);
-      setSelectedPolygon(poly);
-      fetchComparisonData(poly);
+      try {
+        const poly = JSON.parse(saved);
+        setSelectedPolygon(poly);
+        fetchComparisonData(poly);
+      } catch (e) {
+        console.error('Failed to parse saved field');
+      }
     }
   }, []);
 
@@ -28,8 +42,8 @@ export default function AnalysisPage() {
         axios.post('/api/ndvi', { polygon, dateFrom: '2023-01-01', dateTo: '2023-12-31' }),
         axios.post('/api/ndvi', { polygon, dateFrom: '2022-01-01', dateTo: '2022-12-31' })
       ]);
-      setData2023(res2023.data);
-      setData2022(res2022.data);
+      setData2023(res2023.data || []);
+      setData2022(res2022.data || []);
     } catch (error) {
       console.error('Comparison error:', error);
     } finally {
@@ -37,8 +51,8 @@ export default function AnalysisPage() {
     }
   };
 
-  const getPeak = (data: any[]) => data.length > 0 ? Math.max(...data.map(d => d.value)) : 0;
-  const getAvg = (data: any[]) => data.length > 0 ? data.reduce((a, b) => a + b.value, 0) / data.length : 0;
+  const getPeak = (data: any[]) => (data && data.length > 0) ? Math.max(...data.map(d => d.value)) : 0;
+  const getAvg = (data: any[]) => (data && data.length > 0) ? data.reduce((a, b) => a + b.value, 0) / data.length : 0;
 
   const peak2023 = getPeak(data2023);
   const peak2022 = getPeak(data2022);
@@ -66,7 +80,7 @@ export default function AnalysisPage() {
           <Columns className="w-8 h-8 text-green-600" />
           <h1 className="text-3xl font-bold text-slate-900">Historical Comparison</h1>
         </div>
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full text-center">
           Precision Mode: Active
         </div>
       </div>
@@ -143,16 +157,6 @@ export default function AnalysisPage() {
           </section>
         </>
       )}
-    </div>
-  );
-}
-
-function InsightCard({ title, value, desc }: { title: string, value: string, desc: string }) {
-  return (
-    <div className="space-y-2">
-      <h4 className="text-slate-400 text-xs font-bold uppercase tracking-widest">{title}</h4>
-      <p className="text-xl font-bold text-green-400">{value}</p>
-      <p className="text-sm text-slate-300 leading-relaxed">{desc}</p>
     </div>
   );
 }
