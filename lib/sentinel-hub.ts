@@ -39,28 +39,74 @@ export async function getAccessToken() {
   }
 }
 
-export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: string) {
+export async function fetchStats(
+  polygon: any,
+  dateFrom: string,
+  dateTo: string,
+  dataSource: 'optical' | 'radar' = 'optical'
+) {
   const token = await getAccessToken();
 
-  const evalscript = `
-    //VERSION=3
-    function setup() {
-      return {
-        input: ["B04", "B08", "dataMask"],
-        output: [
-          { id: "default", bands: 1 },
-          { id: "dataMask", bands: 1 }
-        ]
-      };
-    }
-    function evaluatePixel(samples) {
-      let ndvi = (samples.B08 - samples.B04) / (samples.B08 + samples.B04);
-      return {
-        default: [ndvi],
-        dataMask: [samples.dataMask]
-      };
-    }
-  `;
+  let evalscript = '';
+  let dataFilterType = '';
+  let dataFilterConditions = {};
+
+  if (dataSource === 'optical') {
+    dataFilterType = 'sentinel-2-l2a';
+    dataFilterConditions = { mosaickingOrder: 'leastCC' };
+    evalscript = `
+      //VERSION=3
+      function setup() {
+        return {
+          input: ["B04", "B08", "dataMask"],
+          output: [
+            { id: "default", bands: 1 },
+            { id: "dataMask", bands: 1 }
+          ]
+        };
+      }
+      function evaluatePixel(samples) {
+        let ndvi = (samples.B08 - samples.B04) / (samples.B08 + samples.B04);
+        return {
+          default: [ndvi],
+          dataMask: [samples.dataMask]
+        };
+      }
+    `;
+  } else {
+    // Radar NDVInc implementation based on typical VV/VH ratios
+    dataFilterType = 'sentinel-1-grd';
+    dataFilterConditions = {
+      acquisitionMode: 'IW',
+      polarization: 'DV',
+      resolution: 'HIGH',
+      orbitDirection: 'DESCENDING'
+    };
+    evalscript = `
+      //VERSION=3
+      function setup() {
+        return {
+          input: ["VV", "VH", "dataMask"],
+          output: [
+            { id: "default", bands: 1 },
+            { id: "dataMask", bands: 1 }
+          ]
+        };
+      }
+      function evaluatePixel(samples) {
+        // Simple synthetic NDVI proxy using Radar (RVI / VH/VV ratios modified)
+        // Note: Real NDVInc uses trained models, this is a prototype index mapping.
+        let vv = samples.VV;
+        let vh = samples.VH;
+        
+        let ndvinc = Math.max(0, Math.min(1, (vh - vv) / (vh + vv) + 0.3));
+        return {
+          default: [ndvinc],
+          dataMask: [samples.dataMask]
+        };
+      }
+    `;
+  }
 
   const coords = polygon.geometry ? polygon.geometry.coordinates[0] : polygon.coordinates[0];
   let minX = 180, maxX = -180, minY = 90, maxY = -90;
@@ -71,7 +117,6 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
     maxY = Math.max(maxY, coord[1]);
   });
   const maxDim = Math.max(maxX - minX, maxY - minY);
-  // target ~500 pixels across, min resolution 0.0001 (~10m), max 0.01 (~1100m, strictly under 1500m limit)
   let res = Math.max(0.0001, maxDim / 500);
   if (res > 0.01) res = 0.01;
 
@@ -85,13 +130,13 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
       },
       data: [
         {
-          type: "sentinel-2-l2a",
+          type: dataFilterType,
           dataFilter: {
             timeRange: {
               from: `${dateFrom}T00:00:00Z`,
               to: `${dateTo}T23:59:59Z`
             },
-            mosaickingOrder: "leastCC"
+            ...dataFilterConditions
           }
         }
       ]
@@ -102,7 +147,7 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
         to: `${dateTo}T23:59:59Z`
       },
       aggregationInterval: {
-        of: "P1M"
+        of: "P1M" // Monthly for chart aggregation
       },
       resx: res,
       resy: res,
@@ -111,9 +156,6 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
   };
 
   try {
-    console.log('--- SENTINEL HUB REQUEST START ---');
-    console.log('Payload:', JSON.stringify(payload, null, 2));
-
     const response = await axios.post(
       'https://services.sentinel-hub.com/api/v1/statistics',
       payload,
@@ -126,17 +168,11 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
       }
     );
 
-    console.log('--- SENTINEL HUB RESPONSE SUCCESS ---');
-
     if (!response.data || !response.data.data) {
-      console.error('Empty data in response:', response.data);
-      throw new Error('Sentinel Hub returned an empty dataset. Try a different area or date range.');
+      throw new Error('Sentinel Hub returned an empty dataset.');
     }
 
-    // Map the statistics to our chart format
     const stats = response.data.data.map((item: any) => {
-      // Statistical API results usually have an output name
-      // If we don't name it, it defaults to 'default' or the first available key
       const outputs = item.outputs || {};
       const output = outputs.default || Object.values(outputs)[0] as any;
       const meanValue = output?.bands?.B0?.stats?.mean;
@@ -147,24 +183,169 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
       };
     }).filter((item: any) => item.value !== null && !isNaN(item.value));
 
-    if (stats.length === 0) {
-      console.warn('No valid NDVI values found in the response.');
-    }
-
     return stats;
 
   } catch (error: any) {
-    const errorData = error.response?.data;
-    console.error('--- SENTINEL HUB ERROR ---');
-    console.error('Status:', error.response?.status);
-    console.error('Error Data:', JSON.stringify(errorData, null, 2));
-
-    // Construct a helpful error message
-    let message = 'Failed to fetch NDVI data.';
-    if (errorData?.error?.message) message += ` ${errorData.error.message}`;
-    if (error.response?.status === 401) message = 'Authentication failed. Please check your Sentinel Hub credentials in .env.local.';
-    if (error.response?.status === 403) message = 'Access denied. Your Sentinel Hub account might not have access to this data or region.';
-
+    let message = 'Failed to fetch data.';
+    if (error.response?.data?.error?.message) message += ` ${error.response.data.error.message}`;
     throw new Error(message);
+  }
+}
+
+export async function getProcessUrl(
+  polygon: any,
+  dateFrom: string,
+  dateTo: string,
+  dataSource: 'optical' | 'radar',
+  layerType: 'trueColor' | 'index'
+) {
+  const token = await getAccessToken();
+
+  let evalscript = '';
+  let dataFilterType = '';
+  let dataFilterConditions = {};
+
+  if (dataSource === 'optical') {
+    dataFilterType = 'sentinel-2-l2a';
+    dataFilterConditions = { mosaickingOrder: 'leastCC' };
+
+    if (layerType === 'trueColor') {
+      evalscript = `
+        //VERSION=3
+        function setup() {
+          return {
+            input: ["B02", "B03", "B04", "dataMask"],
+            output: { id: "default", bands: 4 }
+          };
+        }
+        function evaluatePixel(sample) {
+          return [2.5 * sample.B04, 2.5 * sample.B03, 2.5 * sample.B02, sample.dataMask];
+        }
+      `;
+    } else {
+      evalscript = `
+        //VERSION=3
+        function setup() {
+          return {
+            input: ["B04", "B08", "dataMask"],
+            output: { id: "default", bands: 4 }
+          };
+        }
+        const cmap = [
+          [-0.2, 0x000000], [0, 0xa50026], [0.1, 0xd73027], [0.2, 0xf46d43], [0.3, 0xfdae61],
+          [0.4, 0xfee08b], [0.5, 0xffffbf], [0.6, 0xd9ef8b], [0.7, 0xa6d96a], [0.8, 0x66bd63],
+          [0.9, 0x1a9850], [1.0, 0x006837]
+        ];
+        const visualizer = new ColorRampVisualizer(cmap);
+
+        function evaluatePixel(sample) {
+          let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+          let rgb = visualizer.process(ndvi);
+          return [...rgb, sample.dataMask];
+        }
+      `;
+    }
+  } else {
+    dataFilterType = 'sentinel-1-grd';
+    dataFilterConditions = {
+      acquisitionMode: 'IW',
+      polarization: 'DV',
+      resolution: 'HIGH',
+      orbitDirection: 'DESCENDING'
+    };
+
+    if (layerType === 'trueColor') {
+      evalscript = `
+        //VERSION=3
+        function setup() {
+          return {
+            input: ["VV", "VH", "dataMask"],
+            output: { id: "default", bands: 4 }
+          };
+        }
+        function evaluatePixel(samples) {
+          const vv = samples.VV;
+          const vh = samples.VH;
+          const ratio = Math.max(0, Math.min(1, vh / vv));
+          return [vv * 2.0, vh * 2.0, ratio, samples.dataMask];
+        }
+      `;
+    } else {
+      evalscript = `
+        //VERSION=3
+        function setup() {
+          return {
+            input: ["VV", "VH", "dataMask"],
+            output: { id: "default", bands: 4 }
+          };
+        }
+        const cmap = [
+          [0, 0xa50026], [0.2, 0xf46d43], [0.4, 0xfee08b],
+          [0.6, 0xd9ef8b], [0.8, 0x66bd63], [1.0, 0x006837]
+        ];
+        const visualizer = new ColorRampVisualizer(cmap);
+        
+        function evaluatePixel(samples) {
+          let vv = samples.VV;
+          let vh = samples.VH;
+          let ndvinc = Math.max(0, Math.min(1, (vh - vv) / (vh + vv) + 0.3));
+          let rgb = visualizer.process(ndvinc);
+          return [...rgb, samples.dataMask];
+        }
+      `;
+    }
+  }
+
+  const payload = {
+    input: {
+      bounds: {
+        geometry: polygon.geometry || polygon,
+        properties: { crs: "http://www.opengis.net/def/crs/OGC/1.3/CRS84" }
+      },
+      data: [
+        {
+          type: dataFilterType,
+          dataFilter: {
+            timeRange: {
+              from: `${dateFrom}T00:00:00Z`,
+              to: `${dateTo}T23:59:59Z`
+            },
+            ...dataFilterConditions
+          }
+        }
+      ]
+    },
+    output: {
+      width: 512,
+      height: 512,
+      responses: [
+        {
+          identifier: "default",
+          format: { type: "image/png" }
+        }
+      ]
+    },
+    evalscript: evalscript
+  };
+
+  try {
+    const response = await axios.post(
+      'https://services.sentinel-hub.com/api/v1/process',
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'image/png'
+        },
+        responseType: 'arraybuffer'
+      }
+    );
+
+    const base64 = Buffer.from(response.data, 'binary').toString('base64');
+    return `data:image/png;base64,${base64}`;
+  } catch (error: any) {
+    console.error('Process API error', error.response?.data?.toString());
+    throw new Error('Failed to generate image');
   }
 }

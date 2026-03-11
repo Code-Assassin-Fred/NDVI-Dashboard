@@ -2,7 +2,7 @@
 
 A comprehensive web application for monitoring crop health using **Sentinel Hub NDVI** data. Built as a dissertation project to demonstrate the power of remote sensing in modern farm management.
 
-## 🚀 Features
+## Features
 
 - **Interactive Satellite Mapping**: Custom field selection using Leaflet.js with area-specific coordinate tracking.
 - **NDVI Time Series**: High-resolution vegetation index charts powered by Chart.js.
@@ -10,7 +10,7 @@ A comprehensive web application for monitoring crop health using **Sentinel Hub 
 - **Multi-Field Comparison**: Compare vegetation health trends between different parcels side-by-side.
 - **Responsive Design**: Modern, glassmorphic UI built with Next.js and Tailwind CSS.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: Next.js 15+, TypeScript, Tailwind CSS
 - **Maps**: Leaflet.js, React-Leaflet
@@ -18,7 +18,7 @@ A comprehensive web application for monitoring crop health using **Sentinel Hub 
 - **Backend**: Next.js API Routes (Serverless)
 - **Data Source**: Sentinel Hub (Copernicus Sentinel-2)
 
-## 📦 Installation & Setup
+## Installation & Setup
 
 1. **Clone the repository**
    ```bash
@@ -49,6 +49,6 @@ A comprehensive web application for monitoring crop health using **Sentinel Hub 
 
 The backend (`/api/ndvi`) handles OAuth 2.0 authentication with Sentinel Hub. It processes polygon geometries (GeoJSON) and retrieves statistical NDVI values for the requested date ranges.
 
-## 📄 License & Purpose
+## License & Purpose
 
 This project is part of a dissertation on Precision Agriculture. It is designed to be modular and easily expandable for real-world agricultural deployments.

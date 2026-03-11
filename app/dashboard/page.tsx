@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import NDVIChart from '@/components/NDVIChart';
 import TimeSlider from '@/components/TimeSlider';
-import { Leaf, Activity, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Leaf, Activity, AlertTriangle, ChevronRight, Layers, Radio } from 'lucide-react';
 import axios from 'axios';
 
 // Leaflet needs to be dynamically imported because it uses 'window'
@@ -18,6 +18,12 @@ export default function DashboardPage() {
   const [ndviData, setNdviData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTimeIndex, setCurrentTimeIndex] = useState(5);
+
+  // New State for Data Sources and Layers
+  const [dataSource, setDataSource] = useState<'optical' | 'radar'>('optical');
+  const [layerType, setLayerType] = useState<'trueColor' | 'index'>('index');
+  const [mapImageUrl, setMapImageUrl] = useState<string | undefined>();
+  const [isMapLoading, setIsMapLoading] = useState(false);
 
   const timelineLabels = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -44,7 +50,13 @@ export default function DashboardPage() {
     if (selectedPolygon) {
       fetchData();
     }
-  }, [selectedPolygon]);
+  }, [selectedPolygon, dataSource]);
+
+  useEffect(() => {
+    if (selectedPolygon && ndviData.length > 0) {
+      fetchMapImage();
+    }
+  }, [selectedPolygon, currentTimeIndex, dataSource, layerType, ndviData]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -52,15 +64,47 @@ export default function DashboardPage() {
       const response = await axios.post('/api/ndvi', {
         polygon: selectedPolygon,
         dateFrom: '2023-01-01',
-        dateTo: '2023-12-31'
+        dateTo: '2023-12-31',
+        dataSource: dataSource
       });
       setNdviData(response.data);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'Failed to fetch NDVI data.';
       console.error('Failed to fetch NDVI:', errorMsg);
-      alert(errorMsg); // Show the specific reason for failure
+      alert(errorMsg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMapImage = async () => {
+    if (!ndviData[currentTimeIndex]) return;
+
+    setIsMapLoading(true);
+    try {
+      // Create a date range for the selected month to fetch the image.
+      // Using the whole month interval since our data is aggregated monthly.
+      const selectedMonthStr = ndviData[currentTimeIndex].date; // '2023-06-01'
+      const dateFromStr = selectedMonthStr;
+
+      const dateObj = new Date(selectedMonthStr);
+      dateObj.setMonth(dateObj.getMonth() + 1);
+      dateObj.setDate(0);
+      const dateToStr = dateObj.toISOString().split('T')[0];
+
+      const response = await axios.post('/api/image', {
+        polygon: selectedPolygon,
+        dateFrom: dateFromStr,
+        dateTo: dateToStr,
+        dataSource: dataSource,
+        layerType: layerType
+      });
+      setMapImageUrl(response.data.url);
+    } catch (error: any) {
+      console.error('Failed to fetch map image:', error);
+      setMapImageUrl(undefined);
+    } finally {
+      setIsMapLoading(false);
     }
   };
 
@@ -68,6 +112,8 @@ export default function DashboardPage() {
   const avgNDVI = ndviData.length > 0
     ? ndviData.reduce((acc, curr) => acc + curr.value, 0) / ndviData.length
     : 0;
+
+  const getMetricLabel = () => dataSource === 'optical' ? 'NDVI' : 'NDVInc';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -89,16 +135,75 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Col: Map & Timeline */}
         <div className="lg:col-span-2 space-y-6">
-          <Map
-            center={[-34.6037, -58.3816]} // Default to some area, e.g., Argentina pampas
-            zoom={14}
-            onPolygonCreated={handlePolygonCreated}
-          />
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-6 items-center">
+
+            {/* Data Source Toggle */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-slate-500 flex items-center gap-1">
+                <Radio className="w-4 h-4" /> Sensor:
+              </span>
+              <div className="flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setDataSource('optical')}
+                  className={`px-3 py-1 text-sm font-medium rounded-md ${dataSource === 'optical' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}
+                >
+                  Sentinel-2 (Optical)
+                </button>
+                <button
+                  onClick={() => setDataSource('radar')}
+                  className={`px-3 py-1 text-sm font-medium rounded-md ${dataSource === 'radar' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}
+                >
+                  Sentinel-1 (Radar)
+                </button>
+              </div>
+            </div>
+
+            {/* Layer Type Toggle */}
+            <div className="flex items-center gap-3 ml-auto">
+              <span className="text-sm font-semibold text-slate-500 flex items-center gap-1">
+                <Layers className="w-4 h-4" /> View:
+              </span>
+              <div className="flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setLayerType('trueColor')}
+                  className={`px-3 py-1 text-sm font-medium rounded-md ${layerType === 'trueColor' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}
+                >
+                  True Color
+                </button>
+                <button
+                  onClick={() => setLayerType('index')}
+                  className={`px-3 py-1 text-sm font-medium rounded-md ${layerType === 'index' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}
+                >
+                  {getMetricLabel()} Heatmap
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <div className="relative">
+            <Map
+              center={[-34.6037, -58.3816]}
+              zoom={14}
+              onPolygonCreated={handlePolygonCreated}
+              ndviLayerUrl={mapImageUrl}
+            />
+            {isMapLoading && (
+              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-slate-200 text-sm font-medium text-slate-700 z-[1000] flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                Loading imagery...
+              </div>
+            )}
+          </div>
+
           <TimeSlider
             value={currentTimeIndex}
             min={0}
-            max={11}
-            labels={timelineLabels}
+            max={ndviData.length ? ndviData.length - 1 : 11}
+            labels={ndviData.length ? ndviData.map(d => {
+              const date = new Date(d.date);
+              return date.toLocaleString('default', { month: 'short' });
+            }) : timelineLabels}
             onChange={setCurrentTimeIndex}
           />
         </div>
@@ -108,16 +213,24 @@ export default function DashboardPage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Current NDVI</span>
-              <span className={`text-2xl font-bold ${currentNDVI > 0.5 ? 'text-green-600' : 'text-amber-500'}`}>
-                {currentNDVI.toFixed(2)}
-              </span>
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Current {getMetricLabel()}</span>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-slate-200 animate-pulse rounded mt-1" />
+              ) : (
+                <span className={`text-2xl font-bold ${currentNDVI > 0.5 ? 'text-green-600' : 'text-amber-500'}`}>
+                  {currentNDVI.toFixed(2)}
+                </span>
+              )}
             </div>
             <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Avg Health</span>
-              <span className="text-2xl font-bold text-slate-900">
-                {avgNDVI > 0 ? (avgNDVI * 100).toFixed(0) + '%' : '--'}
-              </span>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-slate-200 animate-pulse rounded mt-1" />
+              ) : (
+                <span className="text-2xl font-bold text-slate-900">
+                  {avgNDVI > 0 ? (avgNDVI * 100).toFixed(0) + '%' : '--'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -130,22 +243,19 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              <NDVIChart data={ndviData} />
+              <NDVIChart data={ndviData} label={`${getMetricLabel()} Value`} />
 
               {/* Alert Section */}
-              <div className={`p-4 rounded-xl border flex gap-3 ${currentNDVI < 0.4 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'
-                }`}>
-                <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${currentNDVI < 0.4 ? 'text-amber-600' : 'text-green-600'
-                  }`} />
+              <div className={`p-4 rounded-xl border flex gap-3 ${currentNDVI < 0.4 && currentNDVI > 0 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+                <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${currentNDVI < 0.4 && currentNDVI > 0 ? 'text-amber-600' : 'text-green-600'}`} />
                 <div>
-                  <h4 className={`text-sm font-bold ${currentNDVI < 0.4 ? 'text-amber-900' : 'text-green-900'
-                    }`}>
-                    {currentNDVI < 0.4 ? 'Low Vegetation Health' : 'Optimal Growth'}
+                  <h4 className={`text-sm font-bold ${currentNDVI < 0.4 && currentNDVI > 0 ? 'text-amber-900' : 'text-green-900'}`}>
+                    {currentNDVI < 0.4 && currentNDVI > 0 ? 'Low Vegetation Health' : 'Stable Growth'}
                   </h4>
                   <p className="text-xs text-slate-600 mt-1">
-                    {currentNDVI < 0.4
+                    {currentNDVI < 0.4 && currentNDVI > 0
                       ? 'The current index indicates stress. Consider investigating irrigation or nutrient levels.'
-                      : 'Crops are showing strong photosynthetic activity for this period.'}
+                      : 'The indexed vegetation signature is normal for this period.'}
                   </p>
                 </div>
               </div>
@@ -153,7 +263,7 @@ export default function DashboardPage() {
               <div className="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between">
                 <div className="text-sm">
                   <p className="font-bold">Next Data Update</p>
-                  <p className="text-slate-400 text-xs text-opacity-80">Scheduled in 3 days (Sentinel-2)</p>
+                  <p className="text-slate-400 text-xs text-opacity-80">Scheduled in 3 days ({dataSource === 'optical' ? 'Sentinel-2' : 'Sentinel-1'})</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-500" />
               </div>

@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { fetchNDVIStats } from '@/lib/sentinel-hub';
+import { fetchStats } from '@/lib/sentinel-hub';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { polygon, dateFrom, dateTo } = body;
+    const { polygon, dateFrom, dateTo, dataSource } = body;
 
     if (!polygon) {
       return NextResponse.json({ error: 'Polygon is required' }, { status: 400 });
     }
 
     console.log('Fetching NDVI for polygon:', JSON.stringify(polygon).substring(0, 100) + '...');
-    const stats = await fetchNDVIStats(polygon, dateFrom, dateTo);
+    const stats = await fetchStats(polygon, dateFrom, dateTo, dataSource || 'optical');
     console.log('Successfully fetched stats, count:', stats.length);
 
     return NextResponse.json(stats);
