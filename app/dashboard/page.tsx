@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import NDVIChart from '@/components/NDVIChart';
 import TimeSlider from '@/components/TimeSlider';
-import { Leaf, Activity, AlertTriangle, ChevronRight, Layers, Radio } from 'lucide-react';
+import { Leaf, Activity, AlertTriangle, ChevronRight, Layers, Radio, Calendar } from 'lucide-react';
 import axios from 'axios';
 
 // Leaflet needs to be dynamically imported because it uses 'window'
@@ -24,6 +24,9 @@ export default function DashboardPage() {
   const [layerType, setLayerType] = useState<'trueColor' | 'index'>('index');
   const [mapImageUrl, setMapImageUrl] = useState<string | undefined>();
   const [isMapLoading, setIsMapLoading] = useState(false);
+  const [selectedYear, setSelectedYear] = useState('2023');
+
+  const availableYears = ['2025', '2024', '2023', '2022', '2021', '2020'];
 
   const timelineLabels = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -50,7 +53,7 @@ export default function DashboardPage() {
     if (selectedPolygon) {
       fetchData();
     }
-  }, [selectedPolygon, dataSource]);
+  }, [selectedPolygon, dataSource, selectedYear]);
 
   useEffect(() => {
     if (selectedPolygon && ndviData.length > 0) {
@@ -63,8 +66,8 @@ export default function DashboardPage() {
     try {
       const response = await axios.post('/api/ndvi', {
         polygon: selectedPolygon,
-        dateFrom: '2023-01-01',
-        dateTo: '2023-12-31',
+        dateFrom: `${selectedYear}-01-01`,
+        dateTo: `${selectedYear}-12-31`,
         dataSource: dataSource
       });
       setNdviData(response.data);
@@ -156,6 +159,20 @@ export default function DashboardPage() {
                   Sentinel-1 (Radar)
                 </button>
               </div>
+            </div>
+
+            {/* Year Selector */}
+            <div className="flex items-center gap-3 border-l border-slate-200 pl-4 ml-2">
+              <span className="text-sm font-semibold text-slate-500 flex items-center gap-1">
+                <Calendar className="w-4 h-4" /> Year:
+              </span>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-1.5 font-medium appearance-none"
+              >
+                {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
             </div>
 
             {/* Layer Type Toggle */}
