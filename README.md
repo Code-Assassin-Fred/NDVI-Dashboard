@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NDVI Dashboard | Precision Agriculture
 
-## Getting Started
+A comprehensive web application for monitoring crop health using **Sentinel Hub NDVI** data. Built as a dissertation project to demonstrate the power of remote sensing in modern farm management.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Interactive Satellite Mapping**: Custom field selection using Leaflet.js with area-specific coordinate tracking.
+- **NDVI Time Series**: High-resolution vegetation index charts powered by Chart.js.
+- **Historical Analysis**: Temporal slider to track crop development across different seasons.
+- **Multi-Field Comparison**: Compare vegetation health trends between different parcels side-by-side.
+- **Responsive Design**: Modern, glassmorphic UI built with Next.js and Tailwind CSS.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js 15+, TypeScript, Tailwind CSS
+- **Maps**: Leaflet.js, React-Leaflet
+- **Charts**: Chart.js 4+, React-Chartjs-2
+- **Backend**: Next.js API Routes (Serverless)
+- **Data Source**: Sentinel Hub (Copernicus Sentinel-2)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 Installation & Setup
 
-## Learn More
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ndvi-dashboard
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Configure Environment Variables**
+   Create a `.env.local` file in the root directory and add your Sentinel Hub credentials:
+   ```env
+   SENTINEL_HUB_CLIENT_ID=your_client_id
+   SENTINEL_HUB_CLIENT_SECRET=your_client_secret
+   ```
+   *Note: If no credentials are found, the app will run in "Simulation Mode" with realistic mock data.*
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
 
-## Deploy on Vercel
+## 🛰️ Sentinel Hub Integration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The backend (`/api/ndvi`) handles OAuth 2.0 authentication with Sentinel Hub. It processes polygon geometries (GeoJSON) and retrieves statistical NDVI values for the requested date ranges.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 License & Purpose
+
+This project is part of a dissertation on Precision Agriculture. It is designed to be modular and easily expandable for real-world agricultural deployments.
