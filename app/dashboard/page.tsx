@@ -74,8 +74,8 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 leading-tight">Field Dashboard</h1>
-          <p className="text-slate-500">Select a field on the map to analyze vegetation health.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white leading-tight">Field Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400">Select a field on the map to analyze vegetation health.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-sm font-medium text-slate-600 flex items-center gap-2">

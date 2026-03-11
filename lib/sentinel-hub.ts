@@ -62,6 +62,19 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
     }
   `;
 
+  const coords = polygon.geometry ? polygon.geometry.coordinates[0] : polygon.coordinates[0];
+  let minX = 180, maxX = -180, minY = 90, maxY = -90;
+  coords.forEach((coord: number[]) => {
+    minX = Math.min(minX, coord[0]);
+    maxX = Math.max(maxX, coord[0]);
+    minY = Math.min(minY, coord[1]);
+    maxY = Math.max(maxY, coord[1]);
+  });
+  const maxDim = Math.max(maxX - minX, maxY - minY);
+  // target ~500 pixels across, min resolution 0.0001 (~10m), max 0.01 (~1100m, strictly under 1500m limit)
+  let res = Math.max(0.0001, maxDim / 500);
+  if (res > 0.01) res = 0.01;
+
   const payload = {
     input: {
       bounds: {
@@ -91,6 +104,8 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
       aggregationInterval: {
         of: "P1M"
       },
+      resx: res,
+      resy: res,
       evalscript: evalscript
     }
   };

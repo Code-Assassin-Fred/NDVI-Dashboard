@@ -77,8 +77,7 @@ export default function AnalysisPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Columns className="w-8 h-8 text-green-600" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Historical Comparison</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Historical Comparison</h1>
         </div>
         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-2 md:py-1 rounded-full text-center whitespace-nowrap self-start md:self-auto">
           Precision Mode: Active
@@ -106,7 +105,7 @@ export default function AnalysisPage() {
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-4">
               <div className="flex justify-between items-end">
-                <h2 className="text-xl font-bold text-slate-800">Current Season (2023)</h2>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Current Season (2023)</h2>
                 <span className={`text-sm font-semibold ${Number(growth) >= 0 ? 'text-green-600' : 'text-rose-600'}`}>
                   {Number(growth) >= 0 ? '+' : ''}{growth}% vs 2022
                 </span>
@@ -120,7 +119,7 @@ export default function AnalysisPage() {
 
             <div className="space-y-4 opacity-80">
               <div className="flex justify-between items-end">
-                <h2 className="text-xl font-bold text-slate-800">Previous Season (2022)</h2>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Previous Season (2022)</h2>
                 <span className="text-sm text-slate-400 font-medium tracking-tight italic">Baseline Data</span>
               </div>
               <NDVIChart data={data2022} label="2022 NDVI" />
