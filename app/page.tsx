@@ -7,15 +7,11 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-green-50 via-white to-slate-50 overflow-hidden">
         <div className="max-w-7xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-semibold mb-6 animate-fade-in">
-            <Leaf className="w-4 h-4" />
-            Empowering Precision Agriculture
-          </div>
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 mb-6 tracking-tight">
             Monitor Your Fields with <span className="text-green-600 bg-clip-text">NDVI Intelligence</span>
           </h1>
           <p className="text-xl text-slate-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Gain deep insights into crop health using Sentinel-2 satellite data. 
+            Gain deep insights into crop health using Sentinel-2 satellite data.
             Analyze vegetation health, track trends, and optimize your harvest strategy with ease.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -28,7 +24,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        
+
         {/* Abstract Background Shapes */}
         <div className="absolute top-0 right-0 -translate-y-12 translate-x-12 w-96 h-96 bg-green-100 rounded-full blur-3xl opacity-50"></div>
         <div className="absolute bottom-0 left-0 translate-y-12 -translate-x-12 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
@@ -41,24 +37,24 @@ export default function Home() {
           <div className="h-1 w-20 bg-green-600 mx-auto mt-4 rounded-full"></div>
         </div>
         <div className="grid md:grid-cols-3 gap-8">
-          <FeatureCard 
+          <FeatureCard
             icon={<MapIcon className="w-8 h-8 text-green-600" />}
             title="Interactive Mapping"
             description="Draw custom polygons to define your fields and overlay NDVI layers directly from Sentinel Hub."
           />
-          <FeatureCard 
+          <FeatureCard
             icon={<BarChart3 className="w-8 h-8 text-green-600" />}
             title="Time Series Analysis"
             description="Track health trends over months and seasons with high-resolution temporal charts."
           />
-          <FeatureCard 
+          <FeatureCard
             icon={<ShieldCheck className="w-8 h-8 text-green-600" />}
             title="Precision Insights"
             description="Identify problem areas in your fields before they become critical using vegetation index data."
           />
         </div>
       </section>
-      
+
       {/* Footer */}
       <footer className="mt-auto py-12 border-t border-slate-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500 text-sm">

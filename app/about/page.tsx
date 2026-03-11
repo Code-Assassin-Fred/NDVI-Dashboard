@@ -4,9 +4,6 @@ export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       <header className="mb-12 text-center">
-        <div className="inline-block p-4 bg-green-100 rounded-full mb-6">
-          <Info className="w-10 h-10 text-green-600" />
-        </div>
         <h1 className="text-4xl font-extrabold text-slate-900 mb-4">Understanding NDVI</h1>
         <p className="text-xl text-slate-600">The science behind precision agriculture.</p>
       </header>
@@ -18,8 +15,8 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold">What is NDVI?</h2>
           </div>
           <p className="text-slate-700 leading-relaxed mb-4">
-            The Normalized Difference Vegetation Index (NDVI) is a standard indicator of the quantity, quality and 
-            development of vegetation. It is calculated by measuring the difference between near-infrared 
+            The Normalized Difference Vegetation Index (NDVI) is a standard indicator of the quantity, quality and
+            development of vegetation. It is calculated by measuring the difference between near-infrared
             (which vegetation strongly reflects) and red light (which vegetation absorbs).
           </p>
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center font-mono text-lg">
@@ -52,8 +49,8 @@ export default function AboutPage() {
               <Target className="w-6 h-6" /> Our Purpose
             </h2>
             <p className="text-green-50 leading-relaxed">
-              This dashboard was developed as a dissertation project to demonstrate the practical application of 
-              remote sensing in farm management. By providing farmers with real-time access to satellite indices, 
+              This dashboard was developed as a dissertation project to demonstrate the practical application of
+              remote sensing in farm management. By providing farmers with real-time access to satellite indices,
               we enable data-driven decision making that reduces resource waste and improves yield.
             </p>
           </div>

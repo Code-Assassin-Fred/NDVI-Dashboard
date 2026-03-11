@@ -40,16 +40,16 @@ export async function getAccessToken() {
 }
 
 export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: string) {
+  // If credentials are not set, fall back to mock data immediately
+  // This allows the dashboard to run in "Simulation Mode" for development/testing
+  if (!CLIENT_ID || CLIENT_ID === 'your_id_here' || !CLIENT_SECRET || CLIENT_SECRET === 'your_secret_here') {
+    return generateMockNDVIData(dateFrom, dateTo);
+  }
+
   const token = await getAccessToken();
-  
+
   // This is a simplified example of how you'd call the Statistics API
   // In a real scenario, you'd use the Sentinel Hub Statistics API (Process API)
-  // For the purpose of this dashboard, we'll implement a robust mock that mimics the response 
-  // until actual credentials are provided.
-  
-  if (CLIENT_ID === 'your_id_here' || !CLIENT_ID) {
-     return generateMockNDVIData(dateFrom, dateTo);
-  }
 
   // Actual API call logic would go here
   // Reference: https://docs.sentinel-hub.com/api/latest/api/statistics/
