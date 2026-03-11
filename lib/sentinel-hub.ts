@@ -46,8 +46,8 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
     //VERSION=3
     function setup() {
       return {
-        inputs: ["B04", "B08", "dataMask"],
-        outputs: {
+        input: ["B04", "B08", "dataMask"],
+        output: {
           default: { bands: 1 }
         }
       };
