@@ -24,8 +24,20 @@ export default function DashboardPage() {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
+  useEffect(() => {
+    const savedPolygon = localStorage.getItem('selectedField');
+    if (savedPolygon) {
+      try {
+        setSelectedPolygon(JSON.parse(savedPolygon));
+      } catch (e) {
+        console.error('Failed to parse saved polygon');
+      }
+    }
+  }, []);
+
   const handlePolygonCreated = (geojson: any) => {
     setSelectedPolygon(geojson);
+    localStorage.setItem('selectedField', JSON.stringify(geojson));
   };
 
   useEffect(() => {
