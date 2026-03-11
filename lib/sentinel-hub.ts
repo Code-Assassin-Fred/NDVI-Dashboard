@@ -47,15 +47,18 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
     function setup() {
       return {
         input: ["B04", "B08", "dataMask"],
-        output: {
-          default: { bands: 1 }
-        }
+        output: [
+          { id: "default", bands: 1 },
+          { id: "dataMask", bands: 1 }
+        ]
       };
     }
     function evaluatePixel(samples) {
-      if (samples.dataMask === 0) return [NaN];
       let ndvi = (samples.B08 - samples.B04) / (samples.B08 + samples.B04);
-      return [ndvi];
+      return {
+        default: [ndvi],
+        dataMask: [samples.dataMask]
+      };
     }
   `;
 
@@ -117,8 +120,10 @@ export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: str
 
     // Map the statistics to our chart format
     const stats = response.data.data.map((item: any) => {
-      // The default output name is 'default', we check for the first band result
-      const output = item.outputs?.default;
+      // Statistical API results usually have an output name
+      // If we don't name it, it defaults to 'default' or the first available key
+      const outputs = item.outputs || {};
+      const output = outputs.default || Object.values(outputs)[0] as any;
       const meanValue = output?.bands?.B0?.stats?.mean;
 
       return {
