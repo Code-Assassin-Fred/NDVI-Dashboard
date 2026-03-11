@@ -10,12 +10,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Polygon is required' }, { status: 400 });
     }
 
+    console.log('Fetching NDVI for polygon:', JSON.stringify(polygon).substring(0, 100) + '...');
     const stats = await fetchNDVIStats(polygon, dateFrom, dateTo);
-    
+    console.log('Successfully fetched stats, count:', stats.length);
+
     return NextResponse.json(stats);
   } catch (error: any) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('NDVI API Route Error Details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data
+    });
+    return NextResponse.json({
+      error: error.message,
+      details: error.response?.data || 'No additional details'
+    }, { status: 500 });
   }
 }
 

@@ -8,7 +8,7 @@ import { Leaf, Activity, AlertTriangle, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
 // Leaflet needs to be dynamically imported because it uses 'window'
-const Map = dynamic(() => import('@/components/Map'), { 
+const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
   loading: () => <div className="h-[500px] w-full bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400">Loading Map...</div>
 });
@@ -18,9 +18,9 @@ export default function DashboardPage() {
   const [ndviData, setNdviData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTimeIndex, setCurrentTimeIndex] = useState(5);
-  
+
   const timelineLabels = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
@@ -43,16 +43,18 @@ export default function DashboardPage() {
         dateTo: '2023-12-31'
       });
       setNdviData(response.data);
-    } catch (error) {
-      console.error('Failed to fetch NDVI:', error);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || 'Failed to fetch NDVI data.';
+      console.error('Failed to fetch NDVI:', errorMsg);
+      alert(errorMsg); // Show the specific reason for failure
     } finally {
       setIsLoading(false);
     }
   };
 
   const currentNDVI = ndviData[currentTimeIndex]?.value || 0;
-  const avgNDVI = ndviData.length > 0 
-    ? ndviData.reduce((acc, curr) => acc + curr.value, 0) / ndviData.length 
+  const avgNDVI = ndviData.length > 0
+    ? ndviData.reduce((acc, curr) => acc + curr.value, 0) / ndviData.length
     : 0;
 
   return (
@@ -75,15 +77,15 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Col: Map & Timeline */}
         <div className="lg:col-span-2 space-y-6">
-          <Map 
+          <Map
             center={[-34.6037, -58.3816]} // Default to some area, e.g., Argentina pampas
-            zoom={14} 
+            zoom={14}
             onPolygonCreated={handlePolygonCreated}
           />
-          <TimeSlider 
-            value={currentTimeIndex} 
-            min={0} 
-            max={11} 
+          <TimeSlider
+            value={currentTimeIndex}
+            min={0}
+            max={11}
             labels={timelineLabels}
             onChange={setCurrentTimeIndex}
           />
@@ -117,22 +119,19 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-6">
               <NDVIChart data={ndviData} />
-              
+
               {/* Alert Section */}
-              <div className={`p-4 rounded-xl border flex gap-3 ${
-                currentNDVI < 0.4 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'
-              }`}>
-                <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
-                  currentNDVI < 0.4 ? 'text-amber-600' : 'text-green-600'
-                }`} />
+              <div className={`p-4 rounded-xl border flex gap-3 ${currentNDVI < 0.4 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'
+                }`}>
+                <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${currentNDVI < 0.4 ? 'text-amber-600' : 'text-green-600'
+                  }`} />
                 <div>
-                  <h4 className={`text-sm font-bold ${
-                    currentNDVI < 0.4 ? 'text-amber-900' : 'text-green-900'
-                  }`}>
+                  <h4 className={`text-sm font-bold ${currentNDVI < 0.4 ? 'text-amber-900' : 'text-green-900'
+                    }`}>
                     {currentNDVI < 0.4 ? 'Low Vegetation Health' : 'Optimal Growth'}
                   </h4>
                   <p className="text-xs text-slate-600 mt-1">
-                    {currentNDVI < 0.4 
+                    {currentNDVI < 0.4
                       ? 'The current index indicates stress. Consider investigating irrigation or nutrient levels.'
                       : 'Crops are showing strong photosynthetic activity for this period.'}
                   </p>

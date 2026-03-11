@@ -40,33 +40,111 @@ export async function getAccessToken() {
 }
 
 export async function fetchNDVIStats(polygon: any, dateFrom: string, dateTo: string) {
-  // If credentials are not set, fall back to mock data immediately
-  // This allows the dashboard to run in "Simulation Mode" for development/testing
-  if (!CLIENT_ID || CLIENT_ID === 'your_id_here' || !CLIENT_SECRET || CLIENT_SECRET === 'your_secret_here') {
-    return generateMockNDVIData(dateFrom, dateTo);
-  }
-
   const token = await getAccessToken();
 
-  // This is a simplified example of how you'd call the Statistics API
-  // In a real scenario, you'd use the Sentinel Hub Statistics API (Process API)
+  const evalscript = `
+    //VERSION=3
+    function setup() {
+      return {
+        inputs: ["B04", "B08", "dataMask"],
+        outputs: {
+          default: { bands: 1 }
+        }
+      };
+    }
+    function evaluatePixel(samples) {
+      if (samples.dataMask === 0) return [NaN];
+      let ndvi = (samples.B08 - samples.B04) / (samples.B08 + samples.B04);
+      return [ndvi];
+    }
+  `;
 
-  // Actual API call logic would go here
-  // Reference: https://docs.sentinel-hub.com/api/latest/api/statistics/
-  return generateMockNDVIData(dateFrom, dateTo);
-}
+  const payload = {
+    input: {
+      bounds: {
+        geometry: polygon.geometry || polygon,
+        properties: {
+          crs: "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+        }
+      },
+      data: [
+        {
+          type: "sentinel-2-l2a",
+          dataFilter: {
+            timeRange: {
+              from: `${dateFrom}T00:00:00Z`,
+              to: `${dateTo}T23:59:59Z`
+            },
+            mosaickingOrder: "leastCC"
+          }
+        }
+      ]
+    },
+    aggregation: {
+      timeRange: {
+        from: `${dateFrom}T00:00:00Z`,
+        to: `${dateTo}T23:59:59Z`
+      },
+      aggregationInterval: {
+        of: "P1M"
+      },
+      evalscript: evalscript
+    }
+  };
 
-function generateMockNDVIData(dateFrom: string, dateTo: string) {
-  // Generate 12 months of mock data
-  const data = [];
-  const startDate = new Date(dateFrom);
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(startDate);
-    d.setMonth(startDate.getMonth() + i);
-    data.push({
-      date: d.toISOString().split('T')[0],
-      value: 0.3 + Math.random() * 0.5, // Random NDVI between 0.3 and 0.8
-    });
+  try {
+    console.log('--- SENTINEL HUB REQUEST START ---');
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+
+    const response = await axios.post(
+      'https://services.sentinel-hub.com/api/v1/statistics',
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    console.log('--- SENTINEL HUB RESPONSE SUCCESS ---');
+
+    if (!response.data || !response.data.data) {
+      console.error('Empty data in response:', response.data);
+      throw new Error('Sentinel Hub returned an empty dataset. Try a different area or date range.');
+    }
+
+    // Map the statistics to our chart format
+    const stats = response.data.data.map((item: any) => {
+      // The default output name is 'default', we check for the first band result
+      const output = item.outputs?.default;
+      const meanValue = output?.bands?.B0?.stats?.mean;
+
+      return {
+        date: item.interval.from.split('T')[0],
+        value: typeof meanValue === 'number' ? meanValue : null
+      };
+    }).filter((item: any) => item.value !== null && !isNaN(item.value));
+
+    if (stats.length === 0) {
+      console.warn('No valid NDVI values found in the response.');
+    }
+
+    return stats;
+
+  } catch (error: any) {
+    const errorData = error.response?.data;
+    console.error('--- SENTINEL HUB ERROR ---');
+    console.error('Status:', error.response?.status);
+    console.error('Error Data:', JSON.stringify(errorData, null, 2));
+
+    // Construct a helpful error message
+    let message = 'Failed to fetch NDVI data.';
+    if (errorData?.error?.message) message += ` ${errorData.error.message}`;
+    if (error.response?.status === 401) message = 'Authentication failed. Please check your Sentinel Hub credentials in .env.local.';
+    if (error.response?.status === 403) message = 'Access denied. Your Sentinel Hub account might not have access to this data or region.';
+
+    throw new Error(message);
   }
-  return data;
 }

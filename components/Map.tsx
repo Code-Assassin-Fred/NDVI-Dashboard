@@ -32,8 +32,14 @@ export default function Map({
     ndviLayerUrl
 }: MapProps) {
     useEffect(() => {
-        fixLeafletIcon();
+        if (typeof window !== 'undefined') {
+            fixLeafletIcon();
+        }
     }, []);
+
+    if (typeof window === 'undefined') {
+        return <div className="h-[500px] w-full bg-slate-50 animate-pulse rounded-xl" />;
+    }
 
     const _onCreated = (e: any) => {
         const { layerType, layer } = e;
@@ -44,12 +50,14 @@ export default function Map({
     };
 
     return (
-        <div className="h-[500px] w-full rounded-xl overflow-hidden shadow-lg border border-gray-200">
+        <div className="h-[500px] w-full rounded-xl overflow-hidden shadow-lg border border-gray-200 bg-white">
             <MapContainer
+                key={typeof window !== 'undefined' ? 'map-initialized' : 'map-loading'}
                 center={center}
                 zoom={zoom}
                 scrollWheelZoom={true}
                 className="h-full w-full"
+                style={{ height: '100%', width: '100%' }}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
